@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv
+*.env
+
+# Node
+node_modules/
+build/
+dist/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env*
+.DS_Store
+
+# macOS
+.DS_Store
