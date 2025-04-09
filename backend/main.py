@@ -13,6 +13,7 @@ app = FastAPI(title="Cancer Prediction API", version="1.0.0")
 # Allows your frontend (running on a different domain/port)
 # to communicate with this API. Adjust origins for production!
 origins = [
+    "https://proyecto-2-cancer-prediction-1.onrender.com",
     "http://localhost:3000",  # Default React dev port
     "http://localhost:5173", # Default Vite dev port
     # Add your deployed frontend Render URL here later
