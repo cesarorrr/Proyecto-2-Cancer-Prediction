@@ -89,6 +89,11 @@ def read_root():
     """Returns a welcome message."""
     return {"message": "Welcome to the Cancer Prediction API"}
 
+@app.get("/health")
+def health_check():
+    """Endpoint para verificar que el API está en funcionamiento."""
+    return {"status": "ok"}
+
 # --- Prediction Endpoint ---
 @app.post("/predict", response_model=PredictionOutput)
 async def predict_cancer(features: InputFeatures):

@@ -1,6 +1,7 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import axios from 'axios';
 import './App.css'; // O elimina si usarás Tailwind completamente
+import Swal from 'sweetalert2';
 
 interface FormData {
   edad: string;
@@ -82,6 +83,41 @@ function App() {
     }
   };
 
+  const checkServer = async () => {
+    const apiUrl =
+      import.meta.env.VITE_API_URL ||
+      process.env.REACT_APP_API_URL ||
+      'http://localhost:8000';
+
+    try {
+      const res = await axios.get(`${apiUrl}/health`);
+      if (res.status === 200) {
+        Swal.close();
+      } else {
+        // Espera 1 segundo antes de volver a intentar
+        setTimeout(() => checkServer(), 5000);
+      }
+    } catch (error) {
+      // También espera antes de reintentar en caso de error
+      setTimeout(() => checkServer(), 5000);
+    }
+  };
+
+  useEffect(() => {
+    Swal.fire({
+      title: 'Verificando conexión con el servidor...',
+      text: 'Por favor espere...',
+      icon: 'info',
+      allowOutsideClick: false, // No permite cerrar el popup con clic fuera
+      showConfirmButton: false, // Sin botón de confirmar
+      willOpen: () => {
+        checkServer(); // Llama a la función para verificar el servidor
+      },
+      didOpen: () => {
+        Swal.showLoading(); // Muestra el loader de SweetAlert2
+      },
+    });
+  }, []);
   return (
     <div className="App">
       <h1>Predicción de Probabilidad de Cáncer</h1>
