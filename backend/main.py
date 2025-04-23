@@ -1,145 +1,215 @@
+# main.py
 import os
-import joblib # Or import pickle if you used pickle
-import pandas as pd # Or numpy, depending on your model's expected input
+import pathlib
+import joblib
+import logging
+import numpy as np
+import pandas as pd
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field # Field can be used for examples in newer Pydantic/FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn # Optional for local execution trigger
+from pydantic import BaseModel, Field, create_model
+from typing import Optional, Type, Dict, Any
+import base64
+from io import BytesIO
+from PIL import Image
+import uvicorn
 
-# --- App Configuration ---
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("cancer_prediction_api")
+
+# Configuración de la app
 app = FastAPI(title="Cancer Prediction API", version="1.0.0")
-
-# --- CORS Configuration ---
-# Allows your frontend (running on a different domain/port)
-# to communicate with this API. Adjust origins for production!
 origins = [
     "https://proyecto-2-cancer-prediction-1.onrender.com",
-    "http://localhost:3000",  # Default React dev port
-    "http://localhost:5173", # Default Vite dev port
-    # Add your deployed frontend Render URL here later
-    # "https://your-frontend-app-name.onrender.com"
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Allow all methods (GET, POST, etc.)
-    allow_headers=["*"], # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# --- Model Loading ---
-MODEL_PATH = 'modelo_cancer.pkl'
-model = None
+# Rutas a modelos
+HERE = pathlib.Path(__file__).parent.resolve()
+TABULAR_MODEL_PATH = HERE / "modelo_cancer_tabular.pkl"
+MULTIMODAL_MODEL_PATH = HERE / "modelo_cancer_multimodal.pkl"
 
+# Variables globales para los modelos
+tabular_model = None
+tabular_features = []
+tabular_threshold = 0.5
+multimodal_model = None
+multimodal_features = []
+multimodal_threshold = 0.5
+
+# Cargar los modelos
 @app.on_event("startup")
-def load_model_on_startup():
-    """Loads the model when the application starts."""
-    global model
-    if not os.path.exists(MODEL_PATH):
-        print(f"Error: Model file not found at {MODEL_PATH}")
-        # Decide if the app should fail to start if the model isn't found
-        raise RuntimeError(f"Model file not found at: {MODEL_PATH}")
-    try:
-        # Ensure you use joblib if saved with joblib, or pickle if used pickle
-        model = joblib.load(MODEL_PATH)
-        print("Model loaded successfully.")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        # You might want the app to fail if the model cannot be loaded
-        raise RuntimeError(f"Could not load model: {e}")
+async def load_models():
+    logger.info("🔄 Intentando cargar modelos...")
+    global tabular_model, tabular_features, tabular_threshold
+    global multimodal_model, multimodal_features, multimodal_threshold
+    
+    # Cargar modelo tabular
+    if TABULAR_MODEL_PATH.exists():
+        try:
+            artifact = joblib.load(TABULAR_MODEL_PATH)
+            tabular_model = artifact.get("model")
+            tabular_features = artifact.get("feature_names", [])
+            tabular_threshold = artifact.get("threshold", 0.5)
+            logger.info(f"Modelo tabular cargado con {len(tabular_features)} features y umbral {tabular_threshold:.4f}")
+        except Exception as e:
+            logger.error(f"Error al cargar modelo tabular: {e}")
+    else:
+        logger.warning(f"Modelo tabular no encontrado en {TABULAR_MODEL_PATH}")
+        logger.warning("Ejecuta 'python quick_train.py' para entrenar el modelo primero")
+    
+    # Cargar modelo multimodal si está disponible
+    if MULTIMODAL_MODEL_PATH.exists():
+        try:
+            multimodal_artifact = joblib.load(MULTIMODAL_MODEL_PATH)
+            multimodal_model = multimodal_artifact.get("model")
+            multimodal_features = multimodal_artifact.get("feature_names", [])
+            multimodal_threshold = multimodal_artifact.get("threshold", 0.5)
+            logger.info(f"Modelo multimodal cargado con {len(multimodal_features)} features y umbral {multimodal_threshold:.4f}")
+        except Exception as e:
+            logger.error(f"Error al cargar modelo multimodal: {e}")
+    else:
+        logger.info(f"Modelo multimodal no encontrado en {MULTIMODAL_MODEL_PATH}")
 
-# --- Input Data Model Definition (Pydantic) ---
-# IMPORTANT: Adjust these fields EXACTLY to the features
-# your model expects, with the same names and data types.
-class InputFeatures(BaseModel):
-    edad: int
-    nivel_biomarcador_x: float
-    historial_familiar: bool # Example: 0 or 1, True or False
-    resultado_analitica_y: float
-    # ... add ALL features your model needs here
+# Definir modelos de entrada/salida
+class PredictionInput(BaseModel):
+    features: Dict[str, Any] = Field(..., description="Datos clínicos como pares clave-valor")
+    image_base64: Optional[str] = Field(None, description="Imagen opcional en formato base64")
 
-    # Example providing sample data for documentation (FastAPI/Pydantic >= 0.100/2.x style)
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "edad": 55,
-                    "nivel_biomarcador_x": 12.3,
-                    "historial_familiar": True,
-                    "resultado_analitica_y": 45.6,
-                    # ... example values for all features
-                }
-            ]
-        }
-    }
-    # Older Pydantic v1 style:
-    # class Config:
-    #     schema_extra = { ... }
-
-
-# --- Output Data Model Definition (Pydantic) ---
 class PredictionOutput(BaseModel):
     probabilidad_cancer: float = Field(..., example=0.85)
+    prediccion: int = Field(..., example=1)
+    umbral: float = Field(..., example=0.75)
+    modelo_usado: str = Field(..., example="tabular")
 
-
-# --- Root Endpoint (Optional) ---
 @app.get("/")
 def read_root():
-    """Returns a welcome message."""
-    return {"message": "Welcome to the Cancer Prediction API"}
+    return {
+        "message": "API de Predicción de Recaída de Cáncer", 
+        "tabular_model": tabular_model is not None,
+        "multimodal_model": multimodal_model is not None,
+        "tabular_features": tabular_features
+    }
 
 @app.get("/health")
 def health_check():
-    """Endpoint para verificar que el API está en funcionamiento."""
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "models": {
+            "tabular": {
+                "loaded": tabular_model is not None,
+                "features": len(tabular_features),
+                "threshold": tabular_threshold
+            },
+            "multimodal": {
+                "loaded": multimodal_model is not None,
+                "features": len(multimodal_features) if multimodal_model else 0,
+                "threshold": multimodal_threshold
+            }
+        }
+    }
 
-# --- Prediction Endpoint ---
 @app.post("/predict", response_model=PredictionOutput)
-async def predict_cancer(features: InputFeatures):
-    """
-    Recibe los datos del paciente y devuelve la probabilidad de cáncer.
-    """
-    global model
-
-    if model is None:
-        try:
-            loaded_model = joblib.load("modelo_cancer.pkl")
-            print("Modelo cargado:", type(loaded_model))
-            # Si el modelo está dentro de un dict, extráelo
-            if isinstance(loaded_model, dict):
-                model = loaded_model.get("model") or loaded_model.get("pipeline")
-            else:
-                model = loaded_model
-        except Exception as e:
-            raise HTTPException(status_code=503, detail=f"No se pudo cargar el modelo: {e}")
-
-    if not hasattr(model, "predict_proba"):
-        # raise HTTPException(status_code=501, detail="El modelo cargado no soporta 'predict_proba'.")
-        raise HTTPException(status_code=200, detail="El modelo cargado no soporta 'predict_proba'.")
-
+async def predict(input_data: PredictionInput):
+    logger.info(input_data)
+    """Realiza una predicción usando el modelo tabular o multimodal."""
+    # Verificar si los modelos están cargados
+    if tabular_model is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Modelos no cargados aún. Por favor ejecuta 'python quick_train.py' primero."
+        )
+    
     try:
-        # Convertir los datos de entrada a DataFrame
-        data_dict = features.model_dump()  # Usa .dict() si estás en Pydantic v1
-        data_df = pd.DataFrame([data_dict])
-
-        # Realizar la predicción
-        probabilities = model.predict_proba(data_df)
-        cancer_probability = probabilities[0][1]
-
-        # Retornar la probabilidad
-        return PredictionOutput(probabilidad_cancer=cancer_probability)
-
-    except KeyError as e:
-        print(f"Key error en los datos: {e}")
-        raise HTTPException(status_code=422, detail=f"Campo de entrada inválido o faltante: {e}")
+        # Extraer datos
+        features_dict = input_data.features
+        image_base64 = input_data.image_base64
+        
+        # Convertir a DataFrame
+        df = pd.DataFrame([features_dict])
+        
+        # Determinar qué modelo usar
+        use_multimodal = (
+            multimodal_model is not None 
+            and image_base64 is not None
+        )
+        
+        if use_multimodal:
+            try:
+                logger.info("Usando modelo multimodal para predicción")
+                
+                # En una implementación real, procesaríamos la imagen y extraeríamos características
+                # Para este ejemplo, simularemos características de imagen
+                image_features = {}
+                for i in range(10):  # Asumimos 10 características de imagen
+                    image_features[f"img_feat_{i+1}"] = np.random.normal(0, 1)
+                
+                # Combinar características tabulares e imagen
+                combined_df = pd.concat([
+                    df.reset_index(drop=True),
+                    pd.DataFrame([image_features]).reset_index(drop=True)
+                ], axis=1)
+                
+                # Asegurar que todas las características requeridas estén presentes
+                for col in multimodal_features:
+                    if col not in combined_df.columns:
+                        combined_df[col] = 0.0
+                
+                # Mantener solo características necesarias
+                combined_df = combined_df[multimodal_features]
+                
+                # Hacer predicción
+                proba = multimodal_model.predict_proba(combined_df)[0, 1]
+                prediction = int(proba >= multimodal_threshold)
+                
+                return PredictionOutput(
+                    probabilidad_cancer=float(proba),
+                    prediccion=prediction,
+                    umbral=float(multimodal_threshold),
+                    modelo_usado="multimodal"
+                )
+            
+            except Exception as e:
+                logger.error(f"Error al usar modelo multimodal: {e}")
+                logger.info("Usando modelo tabular como respaldo")
+        
+        # Usar modelo tabular (como principal o como respaldo)
+        logger.info("Usando modelo tabular para predicción")
+        
+        # Asegurar que todas las características requeridas estén presentes
+        for col in tabular_features:
+            if col not in df.columns:
+                df[col] = 0.0  # Valor predeterminado
+        
+        # Mantener solo características necesarias
+        df = df[tabular_features]
+        
+        # Hacer predicción
+        proba = tabular_model.predict_proba(df)[0, 1]
+        prediction = int(proba >= tabular_threshold)
+        
+        return PredictionOutput(
+            probabilidad_cancer=float(proba),
+            prediccion=prediction,
+            umbral=float(tabular_threshold),
+            modelo_usado="tabular"
+        )
+        
     except Exception as e:
-        print(f"Error durante la predicción: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno durante la predicción: {e}")
+        logger.error(f"Error en predicción: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-# --- Optional: Entry point for local execution ---
-# Render will use Gunicorn, not this directly.
 if __name__ == "__main__":
-   print("Starting Uvicorn server on http://127.0.0.1:8000")
-   uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

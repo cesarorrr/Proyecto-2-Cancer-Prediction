@@ -1,0 +1,36 @@
+feature,importance
+cat__diet_Moderate,0.053416174
+cat__early_detection_No,0.044782586
+cat__diet_High,0.043157123
+cat__diet_Low,0.038944952
+cat__obesity_Overweight,0.038879406
+num__Glucosa,0.037180178
+num__Hemoglobina,0.03555399
+num__Age,0.034730896
+num__Globulos blancos,0.032883752
+cat__Screening_History_Never,0.032825112
+cat__Screening_History_Regular,0.031826124
+cat__smoke_Yes,0.03175001
+num__Plaquetas,0.031337153
+cat__Sexo_M,0.030896999
+num__tumor_size,0.030372439
+num__cancer_stage,0.030302076
+num__Globulos rojos,0.030162351
+cat__early_detection_Yes,0.027466243
+num__HDL,0.027250318
+cat__smoke_No,0.0269249
+cat__Healthcare_Access_Moderate,0.026804935
+cat__obesity_Normal,0.026627894
+cat__Sexo_F,0.025465181
+cat__Survival_Prediction_No,0.0253739
+cat__Family history_No,0.02502706
+cat__Family history_Yes,0.02477907
+cat__Screening_History_Irregular,0.024633026
+cat__obesity_Obese,0.02328849
+cat__alcohol_No,0.021457646
+cat__Healthcare_Access_High,0.020114506
+cat__Survival_Prediction_Yes,0.018277025
+cat__Healthcare_Access_Low,0.017771797
+cat__inflammatory_bowel_disease_No,0.01623496
+cat__alcohol_Yes,0.013501759
+cat__inflammatory_bowel_disease_Yes,0.0

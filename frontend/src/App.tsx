@@ -1,22 +1,23 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import axios from 'axios';
-import './App.css'; // O elimina si usarás Tailwind completamente
+import './App.css';
 import Swal from 'sweetalert2';
 
 interface FormData {
-  edad: string;
-  nivel_biomarcador_x: string;
-  historial_familiar: boolean;
-  resultado_analitica_y: string;
-  // Agrega más campos aquí si es necesario
+  Age: string;
+  Hemoglobina: string;
+  Plaquetas: string;
+  cancer_stage: string;
+  Tumor_Stage_Interaction: string;
 }
 
 function App() {
   const [formData, setFormData] = useState<FormData>({
-    edad: '',
-    nivel_biomarcador_x: '',
-    historial_familiar: false,
-    resultado_analitica_y: '',
+    Age: '',
+    Hemoglobina: '',
+    Plaquetas: '',
+    cancer_stage: '',
+    Tumor_Stage_Interaction: '',
   });
 
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
@@ -24,10 +25,10 @@ function App() {
   const [error, setError] = useState<string>('');
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: type === 'checkbox' ? checked : value,
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -37,26 +38,25 @@ function App() {
     setError('');
     setPredictionResult(null);
 
-    const apiUrl =
-      import.meta.env.VITE_API_URL ||
-      process.env.REACT_APP_API_URL ||
-      'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     try {
       const dataToSend = {
-        edad: parseInt(formData.edad, 10),
-        nivel_biomarcador_x: parseFloat(formData.nivel_biomarcador_x),
-        historial_familiar: formData.historial_familiar,
-        resultado_analitica_y: parseFloat(formData.resultado_analitica_y),
-        // Asegúrate de convertir más campos si los agregas
+        features: {
+          Age: parseInt(formData.Age, 10),
+          Hemoglobina: parseFloat(formData.Hemoglobina),
+          Plaquetas: parseFloat(formData.Plaquetas),
+          cancer_stage: parseInt(formData.cancer_stage, 10),
+          Tumor_Stage_Interaction: parseFloat(formData.Tumor_Stage_Interaction),
+        },
       };
 
       if (
-        isNaN(dataToSend.edad) ||
-        isNaN(dataToSend.nivel_biomarcador_x) ||
-        isNaN(dataToSend.resultado_analitica_y)
+        Object.values(dataToSend.features).some((val) => isNaN(val as number))
       ) {
-        throw new Error('Por favor, introduce valores numéricos válidos.');
+        throw new Error(
+          'Por favor, introduce todos los valores correctamente.'
+        );
       }
 
       const response = await axios.post(`${apiUrl}/predict`, dataToSend);
@@ -84,21 +84,16 @@ function App() {
   };
 
   const checkServer = async () => {
-    const apiUrl =
-      import.meta.env.VITE_API_URL ||
-      process.env.REACT_APP_API_URL ||
-      'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     try {
       const res = await axios.get(`${apiUrl}/health`);
       if (res.status === 200) {
         Swal.close();
       } else {
-        // Espera 1 segundo antes de volver a intentar
         setTimeout(() => checkServer(), 5000);
       }
-    } catch (error) {
-      // También espera antes de reintentar en caso de error
+    } catch {
       setTimeout(() => checkServer(), 5000);
     }
   };
@@ -108,61 +103,77 @@ function App() {
       title: 'Verificando conexión con el servidor...',
       text: 'Por favor espere...',
       icon: 'info',
-      allowOutsideClick: false, // No permite cerrar el popup con clic fuera
-      showConfirmButton: false, // Sin botón de confirmar
+      allowOutsideClick: false,
+      showConfirmButton: false,
       willOpen: () => {
-        checkServer(); // Llama a la función para verificar el servidor
+        checkServer();
       },
       didOpen: () => {
-        Swal.showLoading(); // Muestra el loader de SweetAlert2
+        Swal.showLoading();
       },
     });
   }, []);
+
   return (
     <div className="App">
       <h1>Predicción de Probabilidad de Cáncer</h1>
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="edad">Edad:</label>
+          <label htmlFor="Age">Edad:</label>
           <input
-            id="edad"
+            id="Age"
+            name="Age"
             type="number"
-            name="edad"
-            value={formData.edad}
+            value={formData.Age}
             onChange={handleChange}
             required
           />
         </div>
         <div>
-          <label htmlFor="nivel_biomarcador_x">Nivel Biomarcador X:</label>
+          <label htmlFor="Hemoglobina">Hemoglobina:</label>
           <input
-            id="nivel_biomarcador_x"
+            id="Hemoglobina"
+            name="Hemoglobina"
             type="number"
             step="0.1"
-            name="nivel_biomarcador_x"
-            value={formData.nivel_biomarcador_x}
+            value={formData.Hemoglobina}
             onChange={handleChange}
             required
           />
         </div>
-        <div className="checkbox-group">
-          <label htmlFor="historial_familiar">Historial Familiar:</label>
+        <div>
+          <label htmlFor="Plaquetas">Plaquetas:</label>
           <input
-            id="historial_familiar"
-            type="checkbox"
-            name="historial_familiar"
-            checked={formData.historial_familiar}
+            id="Plaquetas"
+            name="Plaquetas"
+            type="number"
+            step="0.1"
+            value={formData.Plaquetas}
             onChange={handleChange}
+            required
           />
         </div>
         <div>
-          <label htmlFor="resultado_analitica_y">Resultado Analítica Y:</label>
+          <label htmlFor="cancer_stage">Etapa del Cáncer:</label>
           <input
-            id="resultado_analitica_y"
+            id="cancer_stage"
+            name="cancer_stage"
+            type="number"
+            value={formData.cancer_stage}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="Tumor_Stage_Interaction">
+            Interacción Tumor/Etapa:
+          </label>
+          <input
+            id="Tumor_Stage_Interaction"
+            name="Tumor_Stage_Interaction"
             type="number"
             step="0.1"
-            name="resultado_analitica_y"
-            value={formData.resultado_analitica_y}
+            value={formData.Tumor_Stage_Interaction}
             onChange={handleChange}
             required
           />
