@@ -55,7 +55,10 @@ async def load_models():
     logger.info("🔄 Intentando cargar modelos...")
     global tabular_model, tabular_features, tabular_threshold
     global multimodal_model, multimodal_features, multimodal_threshold
-    
+    print(f"¿Existe TABULAR_MODEL_PATH? {TABULAR_MODEL_PATH.exists()}")
+    print(f"Ruta absoluta: {TABULAR_MODEL_PATH.absolute()}")
+    print(f"¿Existe MULTIMODAL_MODEL_PATH? {MULTIMODAL_MODEL_PATH.exists()}")
+    print(f"Ruta absoluta: {MULTIMODAL_MODEL_PATH.absolute()}")
     # Cargar modelo tabular
     if TABULAR_MODEL_PATH.exists():
         try:
