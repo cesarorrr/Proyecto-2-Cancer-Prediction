@@ -125,84 +125,95 @@ def health_check():
     }
 
 @app.post("/predict", response_model=PredictionOutput)
+@app.post("/predict", response_model=PredictionOutput)
 async def predict(input_data: PredictionInput):
+    logger.info("📥 Datos recibidos:")
     logger.info(input_data)
-    """Realiza una predicción usando el modelo tabular o multimodal."""
-    # Verificar si los modelos están cargados
+
     if tabular_model is None:
         raise HTTPException(
             status_code=503, 
             detail="Modelos no cargados aún. Por favor ejecuta 'python quick_train.py' primero."
         )
-    
+
     try:
         # Extraer datos
         features_dict = input_data.features
         image_base64 = input_data.image_base64
         
-        # Convertir a DataFrame
-        df = pd.DataFrame([features_dict])
+        # Mostrar en consola cada campo recibido
+        logger.info("📄 Campos clínicos recibidos:")
+        for key, value in features_dict.items():
+            logger.info(f" - {key}: {value}")
+
+        if image_base64:
+            logger.info("🖼 Imagen recibida (base64): OK")
+        else:
+            logger.info("🖼 Imagen no enviada")
+
+        # Preprocesar los datos para que sean numéricos o categóricos codificados
+        df = pd.DataFrame([{
+            "Age": int(features_dict.get("Age", 0)),
+            "cancer_stage": int(features_dict.get("cancer_stage", 0)),
+            "tumor_size": float(features_dict.get("tumor_size", 0.0)),
+            "Family history": 1 if features_dict.get("Family history", "No") == "Yes" else 0,
+            "inflammatory_bowel_disease": 1 if features_dict.get("inflammatory_bowel_disease", "No") == "Yes" else 0,
+            "obesity": {"Normal": 0, "Overweight": 1, "Obese": 2}.get(features_dict.get("obesity", "Normal"), 0),
+        }])
+
+        logger.info(f"🧮 DataFrame procesado para predicción:\n{df}")
+
+        # --- El resto sigue como ya lo tienes ---
         
-        # Determinar qué modelo usar
         use_multimodal = (
             multimodal_model is not None 
             and image_base64 is not None
         )
-        
+
         if use_multimodal:
+            logger.info("Usando modelo multimodal para predicción")
             try:
-                logger.info("Usando modelo multimodal para predicción")
-                
-                # En una implementación real, procesaríamos la imagen y extraeríamos características
-                # Para este ejemplo, simularemos características de imagen
+                # Procesar imagen simulada
                 image_features = {}
-                for i in range(10):  # Asumimos 10 características de imagen
+                for i in range(10):
                     image_features[f"img_feat_{i+1}"] = np.random.normal(0, 1)
-                
-                # Combinar características tabulares e imagen
+
                 combined_df = pd.concat([
                     df.reset_index(drop=True),
                     pd.DataFrame([image_features]).reset_index(drop=True)
                 ], axis=1)
-                
-                # Asegurar que todas las características requeridas estén presentes
+
                 for col in multimodal_features:
                     if col not in combined_df.columns:
                         combined_df[col] = 0.0
-                
-                # Mantener solo características necesarias
+
                 combined_df = combined_df[multimodal_features]
-                
-                # Hacer predicción
+
                 proba = multimodal_model.predict_proba(combined_df)[0, 1]
                 prediction = int(proba >= multimodal_threshold)
-                
+
                 return PredictionOutput(
                     probabilidad_cancer=float(proba),
                     prediccion=prediction,
                     umbral=float(multimodal_threshold),
                     modelo_usado="multimodal"
                 )
-            
+
             except Exception as e:
                 logger.error(f"Error al usar modelo multimodal: {e}")
                 logger.info("Usando modelo tabular como respaldo")
         
-        # Usar modelo tabular (como principal o como respaldo)
         logger.info("Usando modelo tabular para predicción")
-        
-        # Asegurar que todas las características requeridas estén presentes
+
         for col in tabular_features:
             if col not in df.columns:
-                df[col] = 0.0  # Valor predeterminado
-        
-        # Mantener solo características necesarias
+                df[col] = 0.0
+
         df = df[tabular_features]
-        
-        # Hacer predicción
+
         proba = tabular_model.predict_proba(df)[0, 1]
         prediction = int(proba >= tabular_threshold)
-        
+
         return PredictionOutput(
             probabilidad_cancer=float(proba),
             prediccion=prediction,
@@ -213,6 +224,7 @@ async def predict(input_data: PredictionInput):
     except Exception as e:
         logger.error(f"Error en predicción: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

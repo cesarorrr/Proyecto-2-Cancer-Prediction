@@ -3,33 +3,47 @@ import axios from 'axios';
 import './App.css';
 import Swal from 'sweetalert2';
 
-interface FormData {
+interface FormDataFields {
   Age: string;
-  Hemoglobina: string;
-  Plaquetas: string;
   cancer_stage: string;
-  Tumor_Stage_Interaction: string;
+  tumor_size: string;
+  family_history: string;
+  inflammatory_bowel_disease: string;
+  obesity: string;
+  photo: File | null;
 }
 
 function App() {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<FormDataFields>({
     Age: '',
-    Hemoglobina: '',
-    Plaquetas: '',
     cancer_stage: '',
-    Tumor_Stage_Interaction: '',
+    tumor_size: '',
+    family_history: 'No',
+    inflammatory_bowel_disease: 'No',
+    obesity: 'Normal',
+    photo: null,
   });
 
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (name === 'photo' && files) {
+      setFormData((prev) => ({
+        ...prev,
+        photo: files[0],
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -41,25 +55,51 @@ function App() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     try {
-      const dataToSend = {
-        features: {
-          Age: parseInt(formData.Age, 10),
-          Hemoglobina: parseFloat(formData.Hemoglobina),
-          Plaquetas: parseFloat(formData.Plaquetas),
-          cancer_stage: parseInt(formData.cancer_stage, 10),
-          Tumor_Stage_Interaction: parseFloat(formData.Tumor_Stage_Interaction),
-        },
-      };
-
+      // Validación de los campos obligatorios
       if (
-        Object.values(dataToSend.features).some((val) => isNaN(val as number))
+        !formData.Age ||
+        !formData.cancer_stage ||
+        !formData.tumor_size ||
+        !formData.family_history ||
+        !formData.inflammatory_bowel_disease ||
+        !formData.obesity
       ) {
-        throw new Error(
-          'Por favor, introduce todos los valores correctamente.'
-        );
+        throw new Error('Por favor completa todos los campos obligatorios.');
       }
 
-      const response = await axios.post(`${apiUrl}/predict`, dataToSend);
+      let image_base64: string | null = null;
+
+      // ⚡ Convertir imagen a Base64 si se subió una
+      if (formData.photo) {
+        const fileReader = new FileReader();
+        image_base64 = await new Promise((resolve, reject) => {
+          fileReader.onload = () =>
+            resolve(fileReader.result?.toString().split(',')[1] || ''); // Obtén la parte Base64
+          fileReader.onerror = (error) => reject(error);
+          fileReader.readAsDataURL(formData.photo!); // <- Aquí el "!" asegura a TS que no es null
+        });
+      }
+
+      // Prepara el objeto JSON con los datos y la imagen en base64
+      const jsonToSend = {
+        features: {
+          Age: Number(formData.Age),
+          cancer_stage: Number(formData.cancer_stage),
+          tumor_size: Number(formData.tumor_size),
+          'Family history': formData.family_history,
+          inflammatory_bowel_disease: formData.inflammatory_bowel_disease,
+          obesity: formData.obesity,
+        },
+        image_base64: image_base64 || null, // La imagen codificada en Base64 o null
+      };
+
+      // Enviar los datos como JSON al servidor
+      const response = await axios.post(`${apiUrl}/predict`, jsonToSend, {
+        headers: {
+          'Content-Type': 'application/json', // Cambiar a 'application/json'
+        },
+      });
+
       setPredictionResult(response.data.probabilidad_cancer);
     } catch (err: any) {
       let errorMsg = 'Ocurrió un error al contactar el servidor.';
@@ -69,8 +109,7 @@ function App() {
             err.response.data?.detail || 'No se pudo procesar la solicitud.'
           }`;
         } else if (err.request) {
-          errorMsg =
-            'No se recibió respuesta del servidor. ¿Está funcionando y accesible?';
+          errorMsg = 'No se recibió respuesta del servidor.';
         } else {
           errorMsg = `Error en la solicitud: ${err.message}`;
         }
@@ -85,7 +124,6 @@ function App() {
 
   const checkServer = async () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
     try {
       const res = await axios.get(`${apiUrl}/health`);
       if (res.status === 200) {
@@ -95,6 +133,15 @@ function App() {
       }
     } catch {
       setTimeout(() => checkServer(), 5000);
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setSelectedImage(imageUrl);
+      // También si necesitas enviar el archivo en el formData más adelante, puedes guardarlo.
     }
   };
 
@@ -116,7 +163,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Predicción de Probabilidad de Cáncer</h1>
+      <h1>Predicción de Cáncer</h1>
       <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="Age">Edad:</label>
@@ -129,58 +176,100 @@ function App() {
             required
           />
         </div>
-        <div>
-          <label htmlFor="Hemoglobina">Hemoglobina:</label>
-          <input
-            id="Hemoglobina"
-            name="Hemoglobina"
-            type="number"
-            step="0.1"
-            value={formData.Hemoglobina}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="Plaquetas">Plaquetas:</label>
-          <input
-            id="Plaquetas"
-            name="Plaquetas"
-            type="number"
-            step="0.1"
-            value={formData.Plaquetas}
-            onChange={handleChange}
-            required
-          />
-        </div>
+
         <div>
           <label htmlFor="cancer_stage">Etapa del Cáncer:</label>
-          <input
+          <select
             id="cancer_stage"
             name="cancer_stage"
-            type="number"
             value={formData.cancer_stage}
             onChange={handleChange}
-            required
-          />
+            required>
+            <option value="">Seleccione...</option>
+            <option value="1">I</option>
+            <option value="2">II</option>
+            <option value="3">III</option>
+          </select>
         </div>
+
         <div>
-          <label htmlFor="Tumor_Stage_Interaction">
-            Interacción Tumor/Etapa:
-          </label>
+          <label htmlFor="tumor_size">Tamaño del Tumor (cm):</label>
           <input
-            id="Tumor_Stage_Interaction"
-            name="Tumor_Stage_Interaction"
+            id="tumor_size"
+            name="tumor_size"
             type="number"
             step="0.1"
-            value={formData.Tumor_Stage_Interaction}
+            min="0"
+            value={formData.tumor_size}
             onChange={handleChange}
             required
           />
         </div>
 
+        <div>
+          <label htmlFor="family_history">Antecedentes Familiares:</label>
+          <select
+            id="family_history"
+            name="family_history"
+            value={formData.family_history}
+            onChange={handleChange}
+            required>
+            <option value="Yes">Sí</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="inflammatory_bowel_disease">
+            Enfermedad Inflamatoria Intestinal:
+          </label>
+          <select
+            id="inflammatory_bowel_disease"
+            name="inflammatory_bowel_disease"
+            value={formData.inflammatory_bowel_disease}
+            onChange={handleChange}
+            required>
+            <option value="Yes">Sí</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="obesity">Obesidad:</label>
+          <select
+            id="obesity"
+            name="obesity"
+            value={formData.obesity}
+            onChange={handleChange}
+            required>
+            <option value="Normal">Normal</option>
+            <option value="Overweight">Sobrepeso</option>
+            <option value="Obese">Obeso</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="photo">Foto de Colonoscopía:</label>
+          <input
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/jpeg,image/jpg"
+            onChange={handleFileChange}
+          />
+        </div>
+        {selectedImage && (
+          <div className="image-preview">
+            <img
+              src={selectedImage}
+              alt="Vista previa"
+              className="preview-img"
+            />
+          </div>
+        )}
+
         <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Calculando...' : 'Obtener Predicción'}
+          {isLoading ? 'Enviando...' : 'Obtener Predicción'}
         </button>
       </form>
 
@@ -188,7 +277,7 @@ function App() {
       {error && <p className="error-message">Error: {error}</p>}
       {predictionResult !== null && (
         <div className="result">
-          <h2>Resultado de la Predicción:</h2>
+          <h2>Resultado:</h2>
           <p>
             Probabilidad de Cáncer:{' '}
             <span>{(predictionResult * 100).toFixed(2)}%</span>

@@ -1,144 +1,125 @@
-/* src/App.css */
+/* App.css */
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f7f6;
   margin: 0;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start; /* Align items to the top */
+  font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #8e9eab, #eef2f3);
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .App {
-  background-color: #fff;
-  max-width: 600px;
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   width: 100%;
-  margin: 20px;
-  padding: 30px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-h1, h2 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 25px;
+  max-width: 500px;
 }
 
 h1 {
-    font-size: 1.8em;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
 }
 
-h2 {
-    font-size: 1.4em;
-    color: #555;
+form {
+  display: flex;
+  flex-direction: column;
 }
 
-
-form div {
-  margin-bottom: 18px;
+form > div {
+  margin-bottom: 1.5rem;
 }
 
 label {
   display: block;
-  margin-bottom: 6px;
-  font-weight: bold;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
   color: #555;
-  font-size: 0.95em;
 }
 
-input[type="text"],
 input[type="number"],
+input[type="file"],
 select {
-  width: 100%; /* Full width */
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; /* Include padding and border in element's total width and height */
-  font-size: 1em;
-}
-
-input[type="checkbox"] {
-   margin-left: 10px;
-   width: auto; /* Override full width for checkbox */
-   vertical-align: middle; /* Align checkbox nicely with label */
-}
-
-.checkbox-group {
-    display: flex;
-    align-items: center; /* Vertically center items in the flex container */
-}
-
-.checkbox-group label {
-    margin-bottom: 0; /* Remove bottom margin for label in flex group */
-    margin-right: 10px; /* Add some space between label and checkbox */
-}
-
-
-button {
-  display: block;
   width: 100%;
-  padding: 12px 18px;
-  background-color: #007bff;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 1rem;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+}
+
+input[type="number"]:focus,
+input[type="file"]:focus,
+select:focus {
+  border-color: #0077ff;
+  outline: none;
+  background-color: #fff;
+}
+
+button[type="submit"] {
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: white;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
   border: none;
-  border-radius: 4px;
-  font-size: 1.1em;
-  font-weight: bold;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  margin-top: 20px; /* Add space above the button */
+  transition: background 0.3s ease;
+  margin-top: 1rem;
 }
 
-button:hover:not(:disabled) {
-  background-color: #0056b3;
-  transform: translateY(-1px); /* Slight lift effect */
+button[type="submit"]:hover {
+  background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
 }
 
-button:disabled {
-  background-color: #cccccc;
+button[disabled] {
+  background: #ccc;
   cursor: not-allowed;
 }
 
-.result {
-  margin-top: 30px;
-  padding: 20px;
-  background-color: #e9f5ff; /* Light blue background */
-  border: 1px solid #b3d7ff; /* Blue border */
-  border-radius: 6px;
+.loading-message {
+  margin-top: 1rem;
+  color: #0077ff;
+  font-weight: 600;
   text-align: center;
 }
 
-.result p {
-  font-size: 1.2em;
-  color: #333;
-  margin: 0; /* Remove default paragraph margin */
+.error-message {
+  margin-top: 1rem;
+  color: #e63946;
+  font-weight: 600;
+  text-align: center;
 }
+
+.result {
+  margin-top: 2rem;
+  background: #f1f1f1;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
 .result span {
-    font-weight: bold;
-    color: #0056b3; /* Darker blue for the result */
+  font-weight: bold;
+  color: #0077ff;
+}
+.image-preview {
+  margin-top: 2rem;
+  text-align: center;
 }
 
-.loading-message,
-.error-message {
-    text-align: center;
-    margin-top: 20px;
-    padding: 10px;
-    border-radius: 4px;
+.preview-img {
+  margin-top: 1rem;
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.loading-message {
-    color: #555;
-}
-
-.error-message {
-  color: #D8000C; /* Dark red */
-  background-color: #FFD2D2; /* Light red */
-  border: 1px solid #D8000C;
-}
