@@ -1,0 +1,16 @@
+{
+    "Age": 63,
+    "tumor_size": 4.5,
+    "relapse": "No",
+    "Family history": "Yes",
+    "inflammatory_bowel_disease": "No",
+    "cancer_stage": "II",
+    "obesity": "Overweight",
+    "Sexo": "M",
+    "smoke": "Yes",
+    "alcohol": "No",
+    "diet": "Moderate",
+    "Screening_History": "Irregular",
+    "Healthcare_Access": "Moderate"
+  }
+  
