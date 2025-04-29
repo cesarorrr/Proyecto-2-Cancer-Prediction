@@ -7,10 +7,10 @@ interface FormDataFields {
   Age: string;
   cancer_stage: string;
   tumor_size: string;
-  family_history: string;
-  inflammatory_bowel_disease: string;
+  family_history: boolean; // ✅ era string
+  inflammatory_bowel_disease: boolean; // ✅ era string
   obesity: string;
-  photo: File | null;
+  photo?: File | null;
 }
 
 function App() {
@@ -18,8 +18,8 @@ function App() {
     Age: '',
     cancer_stage: '',
     tumor_size: '',
-    family_history: 'No',
-    inflammatory_bowel_disease: 'No',
+    family_history: false, // ✅ antes era 'No'
+    inflammatory_bowel_disease: false, // ✅ antes era 'No'
     obesity: 'Normal',
     photo: null,
   });
@@ -33,15 +33,23 @@ function App() {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, files } = e.target as HTMLInputElement;
+
     if (name === 'photo' && files) {
       setFormData((prev) => ({
         ...prev,
         photo: files[0],
       }));
     } else {
+      let parsedValue: any = value;
+
+      // Convertir a booleano si es un campo booleano
+      if (name === 'family_history' || name === 'inflammatory_bowel_disease') {
+        parsedValue = value === 'Yes';
+      }
+
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: parsedValue,
       }));
     }
   };
@@ -55,18 +63,6 @@ function App() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     try {
-      // Validación de los campos obligatorios
-      if (
-        !formData.Age ||
-        !formData.cancer_stage ||
-        !formData.tumor_size ||
-        !formData.family_history ||
-        !formData.inflammatory_bowel_disease ||
-        !formData.obesity
-      ) {
-        throw new Error('Por favor completa todos los campos obligatorios.');
-      }
-
       let image_base64: string | null = null;
 
       // ⚡ Convertir imagen a Base64 si se subió una
@@ -86,11 +82,11 @@ function App() {
           Age: Number(formData.Age),
           cancer_stage: Number(formData.cancer_stage),
           tumor_size: Number(formData.tumor_size),
-          'Family history': formData.family_history,
+          family_history: formData.family_history,
           inflammatory_bowel_disease: formData.inflammatory_bowel_disease,
-          obesity: formData.obesity,
+          obesity: Number(formData.obesity), // ← conversión explícita
         },
-        image_base64: image_base64 || null, // La imagen codificada en Base64 o null
+        image_base64: image_base64 || null,
       };
 
       // Enviar los datos como JSON al servidor
@@ -176,7 +172,6 @@ function App() {
             required
           />
         </div>
-
         <div>
           <label htmlFor="cancer_stage">Etapa del Cáncer:</label>
           <select
@@ -191,7 +186,6 @@ function App() {
             <option value="3">III</option>
           </select>
         </div>
-
         <div>
           <label htmlFor="tumor_size">Tamaño del Tumor (cm):</label>
           <input
@@ -205,20 +199,18 @@ function App() {
             required
           />
         </div>
-
         <div>
           <label htmlFor="family_history">Antecedentes Familiares:</label>
           <select
             id="family_history"
             name="family_history"
-            value={formData.family_history}
+            value={formData.family_history ? 'Yes' : 'No'}
             onChange={handleChange}
             required>
             <option value="Yes">Sí</option>
             <option value="No">No</option>
           </select>
         </div>
-
         <div>
           <label htmlFor="inflammatory_bowel_disease">
             Enfermedad Inflamatoria Intestinal:
@@ -226,14 +218,13 @@ function App() {
           <select
             id="inflammatory_bowel_disease"
             name="inflammatory_bowel_disease"
-            value={formData.inflammatory_bowel_disease}
+            value={formData.inflammatory_bowel_disease ? 'Yes' : 'No'}
             onChange={handleChange}
             required>
             <option value="Yes">Sí</option>
             <option value="No">No</option>
           </select>
         </div>
-
         <div>
           <label htmlFor="obesity">Obesidad:</label>
           <select
@@ -242,12 +233,11 @@ function App() {
             value={formData.obesity}
             onChange={handleChange}
             required>
-            <option value="Normal">Normal</option>
-            <option value="Overweight">Sobrepeso</option>
-            <option value="Obese">Obeso</option>
+            <option value={0}>Normal</option>
+            <option value={1}>Sobrepeso</option>
+            <option value={2}>Obeso</option>
           </select>
         </div>
-
         <div>
           <label htmlFor="photo">Foto de Colonoscopía:</label>
           <input
@@ -267,7 +257,6 @@ function App() {
             />
           </div>
         )}
-
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Enviando...' : 'Obtener Predicción'}
         </button>

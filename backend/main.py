@@ -38,8 +38,8 @@ app.add_middleware(
 
 # Rutas a modelos
 HERE = pathlib.Path(__file__).parent.resolve()
-TABULAR_MODEL_PATH = HERE / "modelo_cancer_tabular.pkl"
-MULTIMODAL_MODEL_PATH = HERE / "modelo_cancer_multimodal.pkl"
+TABULAR_MODEL_PATH = HERE / "models" / "model_tabular.pkl"
+MULTIMODAL_MODEL_PATH = HERE / "models" / "model_hybrid.pkl"
 
 # Variables globales para los modelos
 tabular_model = None
@@ -54,34 +54,31 @@ multimodal_threshold = 0.5
 async def load_models():
     global tabular_model, tabular_features, tabular_threshold
     global multimodal_model, multimodal_features, multimodal_threshold
-    
+
     # Cargar modelo tabular
     if TABULAR_MODEL_PATH.exists():
         try:
-            artifact = joblib.load(TABULAR_MODEL_PATH)
-            tabular_model = artifact.get("model")
-            tabular_features = artifact.get("feature_names", [])
-            tabular_threshold = artifact.get("threshold", 0.5)
-            logger.info(f"Modelo tabular cargado con {len(tabular_features)} features y umbral {tabular_threshold:.4f}")
+            tabular_model = joblib.load(TABULAR_MODEL_PATH)
+            tabular_features = list(tabular_model.feature_names_in_)  # Usa atributos del modelo si están disponibles
+            tabular_threshold = 0.5  # o ajustar si se requiere
+            logger.info("Modelo tabular cargado correctamente.")
         except Exception as e:
             logger.error(f"Error al cargar modelo tabular: {e}")
     else:
         logger.warning(f"Modelo tabular no encontrado en {TABULAR_MODEL_PATH}")
-        logger.warning("Ejecuta 'python quick_train.py' para entrenar el modelo primero")
-    
-    # Cargar modelo multimodal si está disponible
+        logger.warning("Ejecuta 'python train_model.py' para entrenar el modelo primero.")
+
+    # Cargar modelo multimodal
     if MULTIMODAL_MODEL_PATH.exists():
         try:
-            multimodal_artifact = joblib.load(MULTIMODAL_MODEL_PATH)
-            multimodal_model = multimodal_artifact.get("model")
-            multimodal_features = multimodal_artifact.get("feature_names", [])
-            multimodal_threshold = multimodal_artifact.get("threshold", 0.5)
-            logger.info(f"Modelo multimodal cargado con {len(multimodal_features)} features y umbral {multimodal_threshold:.4f}")
+            multimodal_model = joblib.load(MULTIMODAL_MODEL_PATH)
+            multimodal_features = list(multimodal_model.feature_names_in_)  # o None si no se conoce
+            multimodal_threshold = 0.5
+            logger.info("Modelo multimodal cargado correctamente.")
         except Exception as e:
             logger.error(f"Error al cargar modelo multimodal: {e}")
     else:
         logger.info(f"Modelo multimodal no encontrado en {MULTIMODAL_MODEL_PATH}")
-
 # Definir modelos de entrada/salida
 class PredictionInput(BaseModel):
     features: Dict[str, Any] = Field(..., description="Datos clínicos como pares clave-valor")
