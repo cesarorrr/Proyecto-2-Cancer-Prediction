@@ -1,5 +1,5 @@
 # --- Servidor API ---
-fastapi
+fastapi==0.110.2
 uvicorn[standard]==0.29.0      # incluye httptools, websockets, etc.
 gunicorn==21.2.0               # solo necesario en despliegues (Render, etc.)
 
@@ -9,12 +9,14 @@ python-multipart==0.0.9
 python-dotenv==1.1.0
 
 # --- Ciencia de datos / ML ---
-numpy==1.26.3            
+numpy>=1.26,<2.3               # rango seguro con pandas 2.2 y sklearn 1.4
 pandas==2.2.2
 scipy>=1.11,<1.15
-scikit-learn==1.6.1            # Actualizado a la versión con la que se entrenó el modelo
+scikit-learn==1.4.2            # versión estable compatible con XGBoost 2.0.x
 joblib==1.4.2
-xgboost==2.0.3                 # Crucial para cargar el modelo XGBoost
+xgboost==2.0.3
+tensorflow==2.16.1
+opencv-python==4.9.0.80
 
 # --- Visualización ---
 matplotlib==3.8.3

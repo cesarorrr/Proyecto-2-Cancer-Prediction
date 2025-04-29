@@ -1,0 +1,8 @@
+feature,importance
+relapse,0.8366069121639486
+Age,0.0687937168720578
+tumor_size,0.06520344571161821
+obesity,0.017451957207784623
+inflammatory_bowel_disease,0.006866635647368457
+Family history,0.00507733239722242
+cancer_stage,0.0

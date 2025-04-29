@@ -1,0 +1,7 @@
+relapse
+Age
+tumor_size
+obesity
+inflammatory_bowel_disease
+Family history
+cancer_stage
