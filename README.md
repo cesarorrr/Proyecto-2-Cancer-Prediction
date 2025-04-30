@@ -29,11 +29,16 @@ La respuesta incluye la probabilidad de recaída, tipo de modelo usado y umbral 
 
 - Edad
 - Etapa del cáncer
+- Sexo
 - Tamaño del tumor
+- Recaída
+- Fumador
+- Alcohol
+- Dieta
 - Historia familiar
 - Enfermedad inflamatoria
 - Nivel de obesidad
-- Imagen de colonoscopía
+- Imagen de colonoscopía (opcional)
 
 📸 **Vista previa automática de imagen subida**📊 **Resultado mostrado como probabilidad (%) de recaída**
 
