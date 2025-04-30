@@ -1,6 +1,6 @@
 # 🧐 Sistema de Predicción de Cáncer de Colon
 
-Bienvenido al repositorio del **Sistema Inteligente de Predicción de Recaída por Cáncer de Colon**, un proyecto desarrollado por el **Grupo ACO (Abel, Cesar Rodríguez y Oriol)**. Esta solución integra técnicas avanzadas de Machine Learning y Deep Learning para brindar una evaluación médica precisa basada en datos clínicos y, opcionalmente, imágenes médicas.
+Bienvenido al repositorio del **Sistema Inteligente de Predicción de Recaída por Cáncer de Colon**, un proyecto desarrollado por el **Grupo ACO (Abel Pérez, César Rodríguez y Oriol Fernández )**. Esta solución integra técnicas avanzadas de Machine Learning y Deep Learning para brindar una evaluación médica precisa basada en datos clínicos y, opcionalmente, imágenes médicas.
 
 ---
 
@@ -143,7 +143,7 @@ python prediction.py --json paciente_001.json --image colonoscopia.jpg
 
 ## 🧠 Créditos
 
-Proyecto desarrollado por **Grupo ACO**📍 Abel Pérez · Cesar Rodríguez · Oriol
+Proyecto desarrollado por **Grupo ACO**📍 Abel Pérez · César Rodríguez · Oriol Fernández
 
 Contratado por entidades médicas para apoyar el diagnóstico temprano del cáncer de colon.
 
